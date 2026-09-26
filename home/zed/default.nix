@@ -8,9 +8,19 @@
     extensions = [
       "material-icon-theme"
       "nix"
-      "lua"
-      "dockerfile"
-      "toml"
+    ];
+
+    # Ctrl-w h/j/k/l moves focus out of the terminal, like Vim's window keys
+    userKeymaps = [
+      {
+        context = "Terminal";
+        bindings = {
+          "ctrl-w h" = "workspace::ActivatePaneLeft";
+          "ctrl-w j" = "workspace::ActivatePaneDown";
+          "ctrl-w k" = "workspace::ActivatePaneUp";
+          "ctrl-w l" = "workspace::ActivatePaneRight";
+        };
+      }
     ];
 
     # Monokai Pro theme pack (billgo/monokai)

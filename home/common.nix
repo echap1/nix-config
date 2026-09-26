@@ -30,7 +30,18 @@
     jq
     lazygit
     btop
+    discord
+    bitwarden-desktop
   ];
+
+  # Brave, with its extension
+  programs.chromium = {
+    enable = true;
+    package = pkgs.brave;
+    extensions = [
+      "nngceckbapebfimnlniiiahkandclblb"
+    ];
+  };
 
   # Makes fonts from home.packages visible to apps (on macOS they go to ~/Library/Fonts)
   fonts.fontconfig.enable = true;

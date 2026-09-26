@@ -4,14 +4,15 @@
 flake.nix                  every machine is defined here
 hosts/nixos/               NixOS laptop (system level)
 hosts/darwin/              Mac (nix-darwin, system level)
-home/common.nix            shared user setup: Neovim, Zed, CLI tools, font
+home/common.nix            shared user setup: Neovim, Zed, Brave, Discord, CLI tools, font
 home/fish.nix              fish shell (vi bindings, fzf, direnv)
 home/alacritty.nix         Alacritty, Zed's Monokai colors
 home/git.nix               git identity, gh (run `gh auth login` once per machine)
-home/linux/                Hyprland, Noctalia, cursor, Brave, Linux GUI apps
-home/darwin.nix            Mac-only user setup
+home/linux/                Hyprland, Noctalia, cursor, Linux-only apps
+home/darwin/               Mac-only user setup, AeroSpace
 home/zed/                  Zed settings + Monokai theme
 nvim/                      Neovim (nixvim), also runnable on its own
+certs/dod/                 DoD PKI certs for CAC (hosts/*/cac.nix, home/linux/cac.nix)
 ```
 
 ## Using it

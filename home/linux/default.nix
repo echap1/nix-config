@@ -1,7 +1,10 @@
-# Linux desktop: Hyprland, Noctalia, cursor, browser and GUI apps.
+# Linux desktop only: Hyprland, Noctalia, cursor, Claude Desktop, GTK theming.
 { pkgs, inputs, ... }:
 {
-  imports = [ inputs.noctalia.homeModules.default ];
+  imports = [
+    inputs.noctalia.homeModules.default
+    ./cac.nix
+  ];
 
   home.packages = with pkgs; [
     inputs.claude-desktop.packages.${pkgs.stdenv.hostPlatform.system}.default
@@ -9,14 +12,6 @@
     glib
     wl-clipboard # system clipboard for Neovim under Wayland
   ];
-
-  programs.chromium = {
-    enable = true;
-    package = pkgs.brave;
-    extensions = [
-      "nngceckbapebfimnlniiiahkandclblb"
-    ];
-  };
 
   programs.noctalia = {
     enable = true;

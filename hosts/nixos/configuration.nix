@@ -8,6 +8,7 @@
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
+      ./cac.nix
     ];
 
   nix.settings = {
@@ -76,8 +77,6 @@
   # You can use https://search.nixos.org/ to find more packages (and options).
   environment.systemPackages = with pkgs; [
     pkgs.noctalia
-    pkgs.kitty
-    pkgs.discord
     pkgs.git
     pkgs.nautilus
     pkgs.hyprpolkitagent

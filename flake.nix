@@ -86,7 +86,7 @@
           home-manager.darwinModules.home-manager
           (hmSettings [
             ./home/common.nix
-            ./home/darwin.nix
+            ./home/darwin
           ])
         ];
       };

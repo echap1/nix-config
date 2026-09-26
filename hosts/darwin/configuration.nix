@@ -1,6 +1,8 @@
 # nix-darwin system config for the Mac.
 { pkgs, username, ... }:
 {
+  imports = [ ./cac.nix ];
+
   nixpkgs.hostPlatform = "aarch64-darwin";
   nixpkgs.config.allowUnfree = true;
 

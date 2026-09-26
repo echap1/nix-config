@@ -1,5 +1,23 @@
 # Linux desktop only: Hyprland, Noctalia, cursor, Claude Desktop, GTK theming.
-{ pkgs, inputs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
+let
+  wallpaper = ../../wallpapers/wallpaper.png;
+  noctalia = lib.getExe config.programs.noctalia.package;
+  # Noctalia saves a wallpaper picked in its UI to settings.toml, which beats config.toml.
+  # Setting it over IPC each time the shell starts keeps the one from this repo.
+  setWallpaper = pkgs.writeShellScript "noctalia-set-wallpaper" ''
+    for _ in $(seq 1 20); do
+      ${noctalia} msg wallpaper-set ${wallpaper} >/dev/null 2>&1 && exit 0
+      sleep 0.5
+    done
+  '';
+in
 {
   imports = [
     inputs.noctalia.homeModules.default
@@ -19,6 +37,10 @@
     settings = {
       shell.font = "JetBrainsMono Nerd Font";
       shell.screenshot.directory = "~/Pictures/Screenshots";
+      wallpaper = {
+        directory = "${../../wallpapers}"; # what the wallpaper picker shows
+        default.path = "${wallpaper}";
+      };
       theme = {
         mode = "dark";
         source = "custom";
@@ -82,6 +104,8 @@
       };
     };
   };
+
+  systemd.user.services.noctalia.Service.ExecStartPost = "${setWallpaper}";
 
   home.pointerCursor = {
     enable = true;

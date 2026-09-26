@@ -15,12 +15,20 @@
   ];
 
   system.primaryUser = username;
-  users.users.${username}.home = "/Users/${username}";
+
+  # Login shell: fish. nix-darwin only changes the shell of users it manages,
+  # which needs the account's uid. Check yours with `id -u` (the first account on a Mac is 501).
+  users.knownUsers = [ username ];
+  users.users.${username} = {
+    uid = 501;
+    home = "/Users/${username}";
+    shell = pkgs.fish;
+  };
 
   fonts.packages = [ pkgs.nerd-fonts.jetbrains-mono ];
 
   programs.zsh.enable = true;
-  # Makes fish a valid login shell; switch to it once with: chsh -s /run/current-system/sw/bin/fish
+  # Adds fish to /etc/shells so it can be a login shell
   programs.fish.enable = true;
 
   security.pam.services.sudo_local.touchIdAuth = true;

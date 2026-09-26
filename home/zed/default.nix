@@ -9,6 +9,8 @@
       "material-icon-theme"
       "nix"
       "lua"
+      "dockerfile"
+      "toml"
     ];
 
     # Monokai Pro theme pack (billgo/monokai)

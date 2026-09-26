@@ -29,6 +29,7 @@
     fd
     jq
     lazygit
+    btop
   ];
 
   # Makes fonts from home.packages visible to apps (on macOS they go to ~/Library/Fonts)

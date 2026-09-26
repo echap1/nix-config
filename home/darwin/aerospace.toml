@@ -1,6 +1,12 @@
 # AeroSpace config — Hyprland-style keybindings using alt as mod key
 # See: https://nikitabobko.github.io/AeroSpace/guide
 
+# Version 2: workspaces aren't "persistent" just because a key binding names them.
+# In version 1 every bound workspace (1-9) was, and AeroSpace never gives a persistent
+# workspace to a newly connected monitor, so extra monitors started at 10.
+# Now each monitor gets the lowest free number.
+config-version = 2
+
 # Commands that run after AeroSpace startup
 after-startup-command = []
 
@@ -65,9 +71,17 @@ alt-shift-l = 'move --boundaries all-monitors-outer-frame right'
 alt-minus = 'resize smart -50'
 alt-equal = 'resize smart +50'
 
-# Toggle fullscreen (Hyprland: mod+F, but alt-f is workspace F below — use alt-shift-f instead)
-# If you'd rather use alt-f for fullscreen, remove the 'alt-f = workspace F' line below
-alt-shift-f = 'fullscreen'
+# Toggle fullscreen (Hyprland: mod+F)
+alt-f = 'fullscreen'
+
+# Close window (Hyprland: mod+Q)
+alt-q = 'close'
+
+# Launch apps, same keys as Hyprland (mod+Return / mod+W / mod+E / ctrl+shift+esc)
+alt-enter = 'exec-and-forget open -na Alacritty'
+alt-w = 'exec-and-forget open -na "Brave Browser" --args --new-window'
+alt-e = 'exec-and-forget open -a Finder ~'
+ctrl-shift-esc = 'exec-and-forget open -na Alacritty --args -e /etc/profiles/per-user/ethan/bin/btop'
 
 # Toggle floating/tiling (Hyprland: mod+V or mod+shift+space)
 alt-shift-space = 'layout floating tiling'
@@ -82,28 +96,6 @@ alt-6 = 'workspace 6'
 alt-7 = 'workspace 7'
 alt-8 = 'workspace 8'
 alt-9 = 'workspace 9'
-alt-a = 'workspace A'
-alt-b = 'workspace B'
-alt-c = 'workspace C'
-alt-d = 'workspace D'
-alt-e = 'workspace E'
-alt-f = 'workspace F'
-alt-g = 'workspace G'
-alt-i = 'workspace I'
-alt-m = 'workspace M'
-alt-n = 'workspace N'
-alt-o = 'workspace O'
-alt-p = 'workspace P'
-alt-q = 'workspace Q'
-alt-r = 'workspace R'
-alt-s = 'workspace S'
-alt-t = 'workspace T'
-alt-u = 'workspace U'
-alt-v = 'workspace V'
-alt-w = 'workspace W'
-alt-x = 'workspace X'
-alt-y = 'workspace Y'
-alt-z = 'workspace Z'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
 # --focus-follows-window: follow the window to its new workspace (Hyprland behavior)
@@ -116,27 +108,6 @@ alt-shift-6 = 'move-node-to-workspace --focus-follows-window 6'
 alt-shift-7 = 'move-node-to-workspace --focus-follows-window 7'
 alt-shift-8 = 'move-node-to-workspace --focus-follows-window 8'
 alt-shift-9 = 'move-node-to-workspace --focus-follows-window 9'
-alt-shift-a = 'move-node-to-workspace --focus-follows-window A'
-alt-shift-b = 'move-node-to-workspace --focus-follows-window B'
-alt-shift-c = 'move-node-to-workspace --focus-follows-window C'
-alt-shift-d = 'move-node-to-workspace --focus-follows-window D'
-alt-shift-e = 'move-node-to-workspace --focus-follows-window E'
-alt-shift-g = 'move-node-to-workspace --focus-follows-window G'
-alt-shift-i = 'move-node-to-workspace --focus-follows-window I'
-alt-shift-m = 'move-node-to-workspace --focus-follows-window M'
-alt-shift-n = 'move-node-to-workspace --focus-follows-window N'
-alt-shift-o = 'move-node-to-workspace --focus-follows-window O'
-alt-shift-p = 'move-node-to-workspace --focus-follows-window P'
-alt-shift-q = 'move-node-to-workspace --focus-follows-window Q'
-alt-shift-r = 'move-node-to-workspace --focus-follows-window R'
-alt-shift-s = 'move-node-to-workspace --focus-follows-window S'
-alt-shift-t = 'move-node-to-workspace --focus-follows-window T'
-alt-shift-u = 'move-node-to-workspace --focus-follows-window U'
-alt-shift-v = 'move-node-to-workspace --focus-follows-window V'
-alt-shift-w = 'move-node-to-workspace --focus-follows-window W'
-alt-shift-x = 'move-node-to-workspace --focus-follows-window X'
-alt-shift-y = 'move-node-to-workspace --focus-follows-window Y'
-alt-shift-z = 'move-node-to-workspace --focus-follows-window Z'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
 alt-tab = 'workspace-back-and-forth'

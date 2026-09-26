@@ -4,7 +4,7 @@
 flake.nix                  every machine is defined here
 hosts/nixos/               NixOS laptop (system level)
 hosts/darwin/              Mac (nix-darwin, system level)
-home/common.nix            shared user setup: Neovim, Zed, Brave, Discord, CLI tools, font
+home/common.nix            shared user setup: Neovim, Zed, Brave, Discord, Bitwarden, Obsidian, CLI tools, font
 home/fish.nix              fish shell (vi bindings, fzf, direnv)
 home/alacritty.nix         Alacritty, Zed's Monokai colors
 home/git.nix               git identity, gh (run `gh auth login` once per machine)

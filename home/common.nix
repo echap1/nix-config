@@ -32,6 +32,7 @@
     btop
     discord
     bitwarden-desktop
+    obsidian
   ];
 
   # Brave, with its extension

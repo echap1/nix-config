@@ -37,6 +37,18 @@ find_repo() {
 REPO=$(find_repo)
 cd "$REPO"
 
+# A `sudo nixos-rebuild` that updates flake.lock can leave root-owned files in .git,
+# which breaks the `git add`s below (and nixos-anywhere's). Catch it up front.
+if [ -n "$(find .git -not -user "$(id -u)" -print -quit 2>/dev/null)" ]; then
+  die "Some files in $REPO/.git are owned by another user. Fix with: sudo chown -R $(id -un) $REPO"
+fi
+
+# Temp dirs, cleaned up on exit (globals so the exit trap can still see them)
+TMP_EXTRA=""
+TMP_KEYS=""
+cleanup() { rm -rf "${TMP_EXTRA:-}" "${TMP_KEYS:-}"; }
+trap cleanup EXIT
+
 # sops looks for age identities (including YubiKey ones) here
 if [ "$(uname -s)" = Darwin ]; then
   AGE_KEYS="$HOME/Library/Application Support/sops/age/keys.txt"
@@ -114,6 +126,8 @@ authorize_host_key() { # pubkey file, host name
   local recipient
   recipient=$(ssh-to-age <"$1")
   if ! age_recipient_known "$recipient"; then
+    # Drop a previous key for the same machine (e.g. after reinstalling it)
+    C="host: $2" yq -i 'del(.creation_rules[0].key_groups[0].age[] | select(line_comment == strenv(C)))' .sops.yaml
     age_recipient_add "$recipient" "host: $2"
     say "Re-encrypting secrets for $2 (touch your YubiKey if it blinks)"
     for f in secrets/*.yaml; do [ -e "$f" ] && sops updatekeys -y "$f"; done
@@ -265,7 +279,7 @@ install_other_machine() {
     "Its whole disk will be erased."
   gum confirm "Ready?" || return 0
 
-  local ip target name gui features disk encrypt system extra keydir key_arg=()
+  local ip target name gui features disk encrypt system key_arg=()
   ip=$(gum input --header "IP address of the machine" --placeholder "192.168.1.50")
   [ -n "$ip" ] || die "No address"
   target="root@$ip"
@@ -284,7 +298,11 @@ install_other_machine() {
   [ -n "$disks" ] || die "No disks found on $ip"
   disk=$(echo "$disks" | gum choose --header "Disk to erase and install onto" | awk '{print $1}')
 
-  name=$(ask_name "")
+  name=$(ask_name "" allow-existing)
+  if [ -e "hosts/$name" ]; then
+    gum confirm "hosts/$name already exists (an earlier attempt?). Replace it?" || return 0
+    rm -rf "hosts/$name"
+  fi
   gui=$(ask_gui "Desktop (apps, window manager)")
   features=$(ask_features)
   encrypt=false
@@ -329,13 +347,12 @@ EOF
   git add "$dir"
 
   # Its SSH host key is made here, so the secrets can be encrypted for it before it exists
-  extra=$(mktemp -d) # copied onto the new machine as-is
-  keydir=$(mktemp -d) # stays here
-  trap 'rm -rf "$extra" "$keydir"' EXIT
-  install -d -m 755 "$extra/etc/ssh"
-  ssh-keygen -q -t ed25519 -N "" -C "root@$name" -f "$extra/etc/ssh/ssh_host_ed25519_key"
+  TMP_EXTRA=$(mktemp -d) # copied onto the new machine as-is
+  TMP_KEYS=$(mktemp -d)  # stays here
+  install -d -m 755 "$TMP_EXTRA/etc/ssh"
+  ssh-keygen -q -t ed25519 -N "" -C "root@$name" -f "$TMP_EXTRA/etc/ssh/ssh_host_ed25519_key"
   if [ -f .sops.yaml ]; then
-    authorize_host_key "$extra/etc/ssh/ssh_host_ed25519_key.pub" "$name"
+    authorize_host_key "$TMP_EXTRA/etc/ssh/ssh_host_ed25519_key.pub" "$name"
   else
     warn "No secrets set up yet, so no login password will be set. Log in over Tailscale SSH or a key in keys/, then run passwd."
   fi
@@ -345,8 +362,8 @@ EOF
     pass1=$(gum input --password --header "Disk encryption passphrase")
     pass2=$(gum input --password --header "Again")
     [ "$pass1" = "$pass2" ] || die "Passphrases don't match"
-    printf '%s' "$pass1" >"$keydir/disk.key"
-    key_arg=(--disk-encryption-keys /tmp/disk.key "$keydir/disk.key")
+    printf '%s' "$pass1" >"$TMP_KEYS/disk.key"
+    key_arg=(--disk-encryption-keys /tmp/disk.key "$TMP_KEYS/disk.key")
   fi
 
   say "Installing $name on $ip"
@@ -354,10 +371,9 @@ EOF
     --flake ".#$name" \
     --target-host "$target" \
     --generate-hardware-config nixos-generate-config "$dir/hardware-configuration.nix" \
-    --extra-files "$extra" \
+    --extra-files "$TMP_EXTRA" \
     --chown /etc/ssh 0:0 \
     "${key_arg[@]}"
-  rm -f "$keydir/disk.key"
   git add "$dir"
 
   header "✓ $name is installed and rebooting"

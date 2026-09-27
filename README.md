@@ -83,25 +83,35 @@ generations are cleaned up weekly on NixOS.
 
 1. Make an account at [tailscale.com](https://login.tailscale.com/start). Sign up with a
    passkey to use your YubiKey.
-2. Allow file sharing (Taildrive) once: Admin console → **Access controls**, add to the
-   policy file:
+2. Admin console → **Access controls**: replace the policy with this. It allows traffic
+   between your devices, file sharing (Taildrive), and Tailscale SSH to your own devices
+   (`check` asks you to confirm in the browser now and then; `accept` doesn't):
 
    ```json
-   "nodeAttrs": [
-     { "target": ["autogroup:member"], "attr": ["drive:share", "drive:access"] }
-   ],
-   "grants": [
-     { "src": ["*"], "dst": ["*"],
-       "app": { "tailscale.com/cap/drive": [{ "shares": ["*"], "access": "rw" }] } }
-   ]
+   {
+     "grants": [
+       { "src": ["*"], "dst": ["*"], "ip": ["*"] },
+       { "src": ["*"], "dst": ["*"],
+         "app": { "tailscale.com/cap/drive": [{ "shares": ["*"], "access": "rw" }] } }
+     ],
+     "nodeAttrs": [
+       { "target": ["autogroup:member"], "attr": ["drive:share", "drive:access"] }
+     ],
+     "ssh": [
+       { "action": "check", "src": ["autogroup:member"], "dst": ["autogroup:self"],
+         "users": ["autogroup:nonroot", "root"] }
+     ]
+   }
    ```
 
-   Keep the policy's default `"ssh"` section; it's what allows Tailscale SSH to your
-   own devices.
+3. Put each machine's SSH public key in `keys/` (`ssh-keygen -t ed25519`, then copy
+   `~/.ssh/id_ed25519.pub` to `keys/<machine>.pub`) and apply on the Macs. NixOS
+   machines don't need it (Tailscale SSH), but the Mac's Remote Login is key-only.
 
 Then, from any of your machines:
 
-- **Terminal:** `ssh <machine>`. Tailscale SSH, no keys needed, NixOS machines.
+- **Terminal:** `ssh <machine>`. NixOS machines answer with Tailscale SSH (no keys);
+  Macs with Remote Login, using the keys in `keys/`.
 - **Files, Linux:** Nautilus → *Other Locations* → `sftp://<machine>/home/ethan`, or
   `dav://100.100.100.100:8080` for every machine's shared home folder (Taildrive).
 - **Files, Mac:** Finder → *Go → Connect to Server* (Cmd-K) → `http://100.100.100.100:8080`,

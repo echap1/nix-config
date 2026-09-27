@@ -181,6 +181,9 @@ hl.animation({ leaf = "monitorAdded",        enabled = false })
 hl.config({
     input = {
         kb_layout     = "us",
+        -- Same key repeat as the Mac (KeyRepeat 2 / InitialKeyRepeat 15): 225 ms, then ~33/s
+        repeat_delay  = 225,
+        repeat_rate   = 33,
         accel_profile = "flat",
         sensitivity   = 0.0,
         touchpad = {

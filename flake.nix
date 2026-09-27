@@ -1,5 +1,5 @@
 {
-  description = "Ethan's NixOS, macOS and portable Home Manager config";
+  description = "Ethan's machines: NixOS, macOS, and Home Manager anywhere else";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -12,8 +12,17 @@
       url = "github:nix-darwin/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nix-homebrew.url = "github:zhaofengli/nix-homebrew";
     nixvim = {
       url = "github:nix-community/nixvim";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    disko = {
+      url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -33,16 +42,10 @@
   };
 
   outputs =
-    inputs@{
-      nixpkgs,
-      home-manager,
-      nix-darwin,
-      nixvim,
-      ...
-    }:
+    inputs@{ nixpkgs, nixvim, ... }:
     let
-      # Change this if your macOS account name is different.
-      username = "ethan";
+      # Every folder in hosts/ with a host.nix becomes a machine (see lib/default.nix)
+      machines = import ./lib { inherit inputs; };
 
       systems = [
         "x86_64-linux"
@@ -50,79 +53,42 @@
         "aarch64-darwin"
       ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
-
-      # Shared by the NixOS and nix-darwin Home Manager setups.
-      hmSettings = homeModules: {
-        home-manager = {
-          useGlobalPkgs = true;
-          useUserPackages = true;
-          backupFileExtension = "backup";
-          extraSpecialArgs = { inherit inputs; };
-          users.${username}.imports = homeModules;
-        };
-      };
     in
     {
-      # Laptop: sudo nixos-rebuild switch --flake .#nixos
-      nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
-        specialArgs = { inherit inputs username; };
-        modules = [
-          ./hosts/nixos/configuration.nix
-          inputs.noctalia-greeter.nixosModules.default
-          home-manager.nixosModules.home-manager
-          (hmSettings [
-            ./home/common.nix
-            ./home/linux
-          ])
-        ];
-      };
-
-      # Mac: sudo darwin-rebuild switch --flake .#mac
-      # (first time: sudo nix run nix-darwin -- switch --flake .#mac)
-      darwinConfigurations.mac = nix-darwin.lib.darwinSystem {
-        specialArgs = { inherit inputs username; };
-        modules = [
-          ./hosts/darwin/configuration.nix
-          home-manager.darwinModules.home-manager
-          (hmSettings [
-            ./home/common.nix
-            ./home/darwin
-          ])
-        ];
-      };
-
-      # Any machine with Nix (another distro, a server, a Mac without nix-darwin):
-      #   nix run home-manager -- switch --flake .#ethan@x86_64-linux
-      # Installs only the shared parts: shell tools, Neovim, Zed.
-      homeConfigurations = nixpkgs.lib.listToAttrs (
-        map (system: {
-          name = "${username}@${system}";
-          value = home-manager.lib.homeManagerConfiguration {
-            pkgs = import nixpkgs {
-              inherit system;
-              config.allowUnfree = true;
-            };
-            extraSpecialArgs = { inherit inputs; };
-            modules = [
-              ./home/common.nix
-              {
-                home.username = username;
-                home.homeDirectory =
-                  if nixpkgs.lib.hasSuffix "darwin" system then "/Users/${username}" else "/home/${username}";
-              }
-            ];
-          };
-        }) systems
-      );
+      inherit (machines) nixosConfigurations darwinConfigurations homeConfigurations;
 
       # Just the editor, on any machine with Nix, nothing installed:
-      #   nix run .#nvim        (or: nix run github:<you>/<repo>#nvim)
-      packages = forAllSystems (system: {
-        nvim = nixvim.legacyPackages.${system}.makeNixvimWithModule {
+      #   nix run .#nvim        (or: nix run github:<you>/nix-config#nvim)
+      packages = forAllSystems (
+        system:
+        let
           pkgs = nixpkgs.legacyPackages.${system};
-          module = ./nvim;
+        in
+        {
+          nvim = nixvim.legacyPackages.${system}.makeNixvimWithModule {
+            inherit pkgs;
+            module = ./nvim;
+          };
+          default = inputs.self.packages.${system}.nvim;
+
+          # Set up a new machine: nix run .#provision
+          provision = pkgs.callPackage ./scripts/provision.nix { inherit inputs; };
+        }
+      );
+
+      apps = forAllSystems (system: {
+        provision = {
+          type = "app";
+          program = nixpkgs.lib.getExe inputs.self.packages.${system}.provision;
+          meta.description = "Set up this or another machine from this repo";
         };
-        default = inputs.self.packages.${system}.nvim;
+      });
+
+      # Tools for working on this repo (sops, age, YubiKey plugin, nixos-anywhere): nix develop
+      devShells = forAllSystems (system: {
+        default = nixpkgs.legacyPackages.${system}.mkShell {
+          packages = inputs.self.packages.${system}.provision.runtimeInputs;
+        };
       });
 
       formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt-tree);

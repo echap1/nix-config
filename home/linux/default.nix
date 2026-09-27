@@ -4,6 +4,7 @@
   lib,
   pkgs,
   inputs,
+  hasFeature,
   ...
 }:
 let
@@ -21,8 +22,14 @@ in
 {
   imports = [
     inputs.noctalia.homeModules.default
-    ./cac.nix
-  ];
+  ]
+  ++ lib.optional (hasFeature "cac") ./cac.nix;
+
+  # Mac-like file manager: show hidden files (Linux file managers always show extensions)
+  dconf.settings = {
+    "org/gtk/gtk4/settings/file-chooser".show-hidden = true; # Nautilus and GTK4 file dialogs
+    "org/gtk/settings/file-chooser".show-hidden = true; # GTK3 file dialogs
+  };
 
   home.packages = with pkgs; [
     inputs.claude-desktop.packages.${pkgs.stdenv.hostPlatform.system}.default

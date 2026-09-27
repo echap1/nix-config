@@ -1,11 +1,9 @@
-# Everything here works on NixOS, macOS and any other Linux with Nix.
+# Command-line setup for every machine: servers, WSL, desktops, Macs.
 { pkgs, inputs, ... }:
 {
   imports = [
     inputs.nixvim.homeModules.nixvim
-    ./zed
     ./fish.nix
-    ./alacritty.nix
     ./git.nix
   ];
 
@@ -24,26 +22,10 @@
   };
 
   home.packages = with pkgs; [
-    nerd-fonts.jetbrains-mono
     ripgrep
     fd
     jq
     lazygit
     btop
-    discord
-    bitwarden-desktop
-    obsidian
   ];
-
-  # Brave, with its extension
-  programs.chromium = {
-    enable = true;
-    package = pkgs.brave;
-    extensions = [
-      "nngceckbapebfimnlniiiahkandclblb"
-    ];
-  };
-
-  # Makes fonts from home.packages visible to apps (on macOS they go to ~/Library/Fonts)
-  fonts.fontconfig.enable = true;
 }

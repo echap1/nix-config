@@ -168,7 +168,8 @@ hl.curve("easy",   { type = "spring", mass = 1, stiffness = 71.2633, dampening =
 hl.curve("rubber", { type = "spring", mass = 1, stiffness = 70,      dampening = 10 })
 
 hl.animation({ leaf = "global",              enabled = true,  speed = 3, bezier = "quick" })
-hl.animation({ leaf = "windows",             enabled = true,  speed = 3, spring = "easy",  style = "slide" })
+-- Windows open, close and move instantly (like AeroSpace). Set enabled = true for the old slide.
+hl.animation({ leaf = "windows",             enabled = false, speed = 3, spring = "easy",  style = "slide" })
 hl.animation({ leaf = "workspaces",          enabled = false, speed = 5, bezier = "quick", style = "slide 20%" })
 hl.animation({ leaf = "specialWorkspaceIn",  enabled = true,  speed = 2, bezier = "quick", style = "slide top" })
 hl.animation({ leaf = "specialWorkspaceOut", enabled = true,  speed = 2, bezier = "quick", style = "slide bottom" })
@@ -216,6 +217,8 @@ hl.bind(mainMod .. " + " .. right, hl.dsp.focus({ direction = "right" }))
 hl.bind(mainMod .. " + " .. up,    hl.dsp.focus({ direction = "up" }))
 hl.bind(mainMod .. " + " .. down,  hl.dsp.focus({ direction = "down" }))
 hl.bind("ALT + Tab",               hl.dsp.window.cycle_next())
+-- Move the current workspace to the next monitor (wraps around), like AeroSpace alt-shift-tab
+hl.bind(mainMod .. " + SHIFT + Tab", hl.dsp.workspace.move({ monitor = "+1" }))
 
 -- Move windows within the workspace
 hl.bind(mainMod .. " + SHIFT + " .. right, hl.dsp.window.move({ direction = "r" }))

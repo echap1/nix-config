@@ -31,6 +31,22 @@ in
   users.users.${username} = {
     home = "/Users/${username}";
     shell = pkgs.fish;
+    # For Remote Login below: any *.pub in keys/ can log in as you
+    openssh.authorizedKeys.keyFiles = map (f: ../../keys + "/${f}") (
+      builtins.filter (f: builtins.match ".*\\.pub" f != null) (
+        builtins.attrNames (builtins.readDir ../../keys)
+      )
+    );
+  };
+
+  # Remote Login (SSH), keys only. The Tailscale Mac app can't be an SSH server itself,
+  # so this is how your other machines reach the Mac (ssh <mac's Tailscale name>).
+  services.openssh = {
+    enable = true;
+    extraConfig = ''
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+    '';
   };
 
   programs.zsh.enable = true;

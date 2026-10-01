@@ -220,8 +220,13 @@ hl.bind(mainMod .. " + " .. right, hl.dsp.focus({ direction = "right" }))
 hl.bind(mainMod .. " + " .. up,    hl.dsp.focus({ direction = "up" }))
 hl.bind(mainMod .. " + " .. down,  hl.dsp.focus({ direction = "down" }))
 hl.bind("ALT + Tab",               hl.dsp.window.cycle_next())
--- Move the current workspace to the next monitor (wraps around), like AeroSpace alt-shift-tab
+-- Move the current workspace to the next monitor (wraps around), like AeroSpace alt-shift-tab,
+-- or to the monitor in a direction with Ctrl+Shift (same keys in AeroSpace and GlazeWM)
 hl.bind(mainMod .. " + SHIFT + Tab", hl.dsp.workspace.move({ monitor = "+1" }))
+hl.bind(mainMod .. " + CONTROL + SHIFT + " .. left,  hl.dsp.workspace.move({ monitor = "l" }))
+hl.bind(mainMod .. " + CONTROL + SHIFT + " .. right, hl.dsp.workspace.move({ monitor = "r" }))
+hl.bind(mainMod .. " + CONTROL + SHIFT + " .. up,    hl.dsp.workspace.move({ monitor = "u" }))
+hl.bind(mainMod .. " + CONTROL + SHIFT + " .. down,  hl.dsp.workspace.move({ monitor = "d" }))
 
 -- Move windows within the workspace
 hl.bind(mainMod .. " + SHIFT + " .. right, hl.dsp.window.move({ direction = "r" }))
@@ -291,8 +296,6 @@ end
 hl.bind(mainMod .. " + CONTROL + " .. right,         hl.dsp.focus({ workspace = "r+1" }))
 hl.bind(mainMod .. " + CONTROL + " .. left,          hl.dsp.focus({ workspace = "r-1" }))
 hl.bind(mainMod .. " + CONTROL + " .. down,          hl.dsp.focus({ workspace = "empty" }))
-hl.bind(mainMod .. " + CONTROL + SHIFT + " .. right, hl.dsp.window.move({ workspace = "r+1" }))
-hl.bind(mainMod .. " + CONTROL + SHIFT + " .. left,  hl.dsp.window.move({ workspace = "r-1" }))
 
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
 hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" }))

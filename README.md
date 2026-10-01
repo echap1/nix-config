@@ -102,12 +102,12 @@ GlazeWM keys are the Hyprland ones with `Alt` in place of `Super` (Windows keeps
 |---|---|
 | `Alt h/j/k/l` / `Alt+Shift h/j/k/l` | focus / move window |
 | `Alt 1-0` / `Alt+Shift 1-0` / `Alt+Ctrl 1-0` | workspace / move window and follow / send window |
-| `Alt+Ctrl h/l` (add `Shift` to take the window) | previous / next workspace |
+| `Alt+Ctrl h/l` | previous / next workspace |
 | `Alt S` / `Alt+Shift S` | scratch workspace / send window there |
 | `Alt Enter` / `Alt W` / `Alt E` | Alacritty / Brave / Explorer |
 | `Alt Q` / `Alt F` / `Alt D` | close / fullscreen / maximize |
 | `Alt+Shift Space` / `Alt /` / `Alt =` `Alt -` | float / split direction / resize |
-| `Alt+Shift Tab` | move workspace to next monitor |
+| `Alt+Ctrl+Shift h/j/k/l` (or `Alt+Shift Tab` for right) | move workspace to the monitor in that direction |
 | `Alt+Shift R` / `Alt+Shift P` / `Alt+Shift E` | reload / pause (games, RDP) / quit GlazeWM |
 | `Alt Space` | app launcher (PowerToys) |
 

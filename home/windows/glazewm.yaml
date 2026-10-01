@@ -166,9 +166,16 @@ keybindings:
   - commands: ['resize --width -50px', 'resize --height -50px']
     bindings: ['alt+oem_minus']
 
-  # Super+Shift+Tab: move the current workspace to the next monitor
+  # Move the current workspace to the monitor in that direction (Hyprland: Super+Shift+Tab).
+  # GlazeWM has no "next monitor" with wrap-around, so Alt+Shift+Tab sends it right.
+  - commands: ['move-workspace --direction left']
+    bindings: ['alt+ctrl+shift+h']
   - commands: ['move-workspace --direction right']
-    bindings: ['alt+shift+tab']
+    bindings: ['alt+ctrl+shift+l', 'alt+shift+tab']
+  - commands: ['move-workspace --direction up']
+    bindings: ['alt+ctrl+shift+k']
+  - commands: ['move-workspace --direction down']
+    bindings: ['alt+ctrl+shift+j']
 
   # ── Apps (Hyprland: DEFAULT APPS) ──
   - commands: ['shell-exec alacritty']
@@ -252,15 +259,12 @@ keybindings:
   - commands: ['move --workspace 10']
     bindings: ['alt+ctrl+0']
 
-  # Alt+Ctrl+L / H: next / previous workspace. Add Shift to take the window along.
+  # Alt+Ctrl+L / H: next / previous workspace. (Alt+Ctrl+Shift+H/J/K/L moves the
+  # workspace to another monitor, above.)
   - commands: ['focus --next-workspace']
     bindings: ['alt+ctrl+l']
   - commands: ['focus --prev-workspace']
     bindings: ['alt+ctrl+h']
-  - commands: ['move --next-workspace', 'focus --next-workspace']
-    bindings: ['alt+ctrl+shift+l']
-  - commands: ['move --prev-workspace', 'focus --prev-workspace']
-    bindings: ['alt+ctrl+shift+h']
 
   # Special workspace: Alt+S shows it, Alt+Shift+S sends the window there.
   # Unlike Hyprland it's a normal workspace, so leave it with Alt+N.

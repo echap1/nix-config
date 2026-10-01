@@ -178,7 +178,8 @@ keybindings:
     bindings: ['alt+ctrl+shift+j']
 
   # ── Apps (Hyprland: DEFAULT APPS) ──
-  - commands: ['shell-exec alacritty']
+  # Full path: the Alacritty installer's PATH change only reaches apps started after it
+  - commands: ['shell-exec %ProgramFiles%/Alacritty/alacritty.exe']
     bindings: ['alt+enter']
   - commands: ['shell-exec explorer']
     bindings: ['alt+e']

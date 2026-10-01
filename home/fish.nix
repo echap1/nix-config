@@ -7,6 +7,8 @@
     interactiveShellInit = ''
       set -g fish_greeting # no welcome message
 
+      set -gx GPG_TTY (tty)
+
       # fastfetch once per Alacritty window. The exported marker stops it from
       # showing again in shells started inside that window (nix-shell, nvim's terminal).
       if set -q ALACRITTY_WINDOW_ID; and not set -q __fastfetch_shown

@@ -21,4 +21,11 @@
     # Makes git use gh's login for github.com (on by default, stated for clarity)
     gitCredentialHelper.enable = true;
   };
+
+  programs.git.includes = [
+    {
+      condition = "gitdir:~/src/";
+      path = "~/.config/git/work";
+    }
+  ];
 }

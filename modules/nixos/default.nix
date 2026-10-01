@@ -7,7 +7,6 @@ in
 {
   imports = [
     ./common.nix
-    ./secrets.nix
   ]
   ++ lib.optional host.gui ./desktop.nix
   ++ lib.optional (has "tailscale") ./tailscale.nix

@@ -4,7 +4,6 @@
 #                           (NixOS, macOS, or any other Linux / WSL via Home Manager)
 #   Another machine         wipes a machine booted from the NixOS installer and installs
 #                           onto it over SSH (nixos-anywhere + disko)
-#   Secrets                 sets up sops with your YubiKey: login password, Tailscale key
 #
 # Everything it writes is git-added; commit and push when you're happy.
 
@@ -48,14 +47,6 @@ TMP_EXTRA=""
 TMP_KEYS=""
 cleanup() { rm -rf "${TMP_EXTRA:-}" "${TMP_KEYS:-}"; }
 trap cleanup EXIT
-
-# sops looks for age identities (including YubiKey ones) here
-if [ "$(uname -s)" = Darwin ]; then
-  AGE_KEYS="$HOME/Library/Application Support/sops/age/keys.txt"
-else
-  AGE_KEYS="${XDG_CONFIG_HOME:-$HOME/.config}/sops/age/keys.txt"
-fi
-export SOPS_AGE_KEY_FILE="$AGE_KEYS"
 
 # ── Small helpers ────────────────────────────────────────────────────────────────
 valid_name() { [[ "$1" =~ ^[a-z0-9][a-z0-9-]*$ ]]; }
@@ -111,30 +102,6 @@ nix_system() {
   if [ "$os" = Darwin ]; then echo "$arch-darwin"; else echo "$arch-linux"; fi
 }
 
-age_recipient_add() { # recipient, comment
-  R="$1" C="$2" yq -i '
-    .creation_rules[0].key_groups[0].age += [strenv(R)] |
-    (.creation_rules[0].key_groups[0].age[] | select(. == strenv(R))) line_comment = strenv(C)
-  ' .sops.yaml
-}
-
-age_recipient_known() { R="$1" yq -e '.creation_rules[0].key_groups[0].age[] | select(. == strenv(R))' .sops.yaml >/dev/null 2>&1; }
-
-# Give a machine's SSH host key access to the secrets (re-encrypts them; touch your YubiKey)
-authorize_host_key() { # pubkey file, host name
-  [ -f .sops.yaml ] || return 0
-  local recipient
-  recipient=$(ssh-to-age <"$1")
-  if ! age_recipient_known "$recipient"; then
-    # Drop a previous key for the same machine (e.g. after reinstalling it)
-    C="host: $2" yq -i 'del(.creation_rules[0].key_groups[0].age[] | select(line_comment == strenv(C)))' .sops.yaml
-    age_recipient_add "$recipient" "host: $2"
-    say "Re-encrypting secrets for $2 (touch your YubiKey if it blinks)"
-    for f in secrets/*.yaml; do [ -e "$f" ] && sops updatekeys -y "$f"; done
-  fi
-  git add .sops.yaml secrets
-}
-
 checklist() {
   header "Almost done: things only you can do (once per machine)"
   cat <<'EOF'
@@ -177,6 +144,10 @@ setup_this_machine() {
     gui=$(ask_gui "$default_gui")
     features=""
     [ "$kind" = home ] || features=$(ask_features)
+    if grep -qi microsoft /proc/version 2>/dev/null &&
+      gum confirm "This is WSL. Also set up Zed, Alacritty, GlazeWM and Zebar on the Windows side?"; then
+      features="windows"
+    fi
     write_host_nix "hosts/$name" "$kind" "$system" "$gui" "$features"
 
     case $kind in
@@ -233,7 +204,6 @@ EOF
 
   case $kind in
   nixos)
-    [ -f /etc/ssh/ssh_host_ed25519_key.pub ] && authorize_host_key /etc/ssh/ssh_host_ed25519_key.pub "$name"
     say "Switching to $name (this can take a while the first time)"
     # --option: a fresh install may not have flakes turned on yet
     sudo nixos-rebuild switch --flake ".#$name" --option experimental-features "nix-command flakes"
@@ -346,16 +316,16 @@ EOF
 EOF
   git add "$dir"
 
-  # Its SSH host key is made here, so the secrets can be encrypted for it before it exists
+  # Your login password, as a hash, copied onto the machine and applied once at first boot
+  # (modules/nixos/common.nix). It never goes into the repo.
+  local p1 p2
+  p1=$(gum input --password --header "Login password for $USERNAME on $name")
+  p2=$(gum input --password --header "Again")
+  [ "$p1" = "$p2" ] || die "Passwords don't match"
   TMP_EXTRA=$(mktemp -d) # copied onto the new machine as-is
   TMP_KEYS=$(mktemp -d)  # stays here
-  install -d -m 755 "$TMP_EXTRA/etc/ssh"
-  ssh-keygen -q -t ed25519 -N "" -C "root@$name" -f "$TMP_EXTRA/etc/ssh/ssh_host_ed25519_key"
-  if [ -f .sops.yaml ]; then
-    authorize_host_key "$TMP_EXTRA/etc/ssh/ssh_host_ed25519_key.pub" "$name"
-  else
-    warn "No secrets set up yet, so no login password will be set. Log in over Tailscale SSH or a key in keys/, then run passwd."
-  fi
+  install -d -m 755 "$TMP_EXTRA/var/lib"
+  (umask 077 && openssl passwd -6 "$p1" >"$TMP_EXTRA/var/lib/nixos-initial-password")
 
   if [ "$encrypt" = true ]; then
     local pass1 pass2
@@ -372,7 +342,7 @@ EOF
     --target-host "$target" \
     --generate-hardware-config nixos-generate-config "$dir/hardware-configuration.nix" \
     --extra-files "$TMP_EXTRA" \
-    --chown /etc/ssh 0:0 \
+    --chown /var/lib/nixos-initial-password 0:0 \
     "${key_arg[@]}"
   git add "$dir"
 
@@ -381,79 +351,10 @@ EOF
   checklist
 }
 
-# ── Secrets (sops + YubiKey) ────────────────────────────────────────────────────
-setup_secrets() {
-  header "Secrets" "" \
-    "Encrypted in secrets/*.yaml. Your YubiKey can decrypt them (to edit), and so can" \
-    "each NixOS machine's SSH host key (to use them at boot). Plug in your YubiKey."
-  gum confirm "Continue?" || return 0
-
-  mkdir -p "$(dirname "$AGE_KEYS")"
-  local recipient
-  recipient=$(age-plugin-yubikey --list 2>/dev/null | grep -m1 '^age1yubikey' || true)
-  if [ -z "$recipient" ]; then
-    say "No age key on this YubiKey yet; creating one (set a PIN if it asks, then touch it)"
-    age-plugin-yubikey --generate --name nix-config --pin-policy once --touch-policy cached
-    recipient=$(age-plugin-yubikey --list | grep -m1 '^age1yubikey')
-  fi
-  # The identity file only says which YubiKey slot to use; the key never leaves the YubiKey
-  age-plugin-yubikey --identity >>"$AGE_KEYS"
-  sort -u "$AGE_KEYS" -o "$AGE_KEYS"
-
-  if [ ! -f .sops.yaml ]; then
-    cat >.sops.yaml <<'EOF'
-# Who can decrypt secrets/*.yaml: your YubiKey(s), to edit them, and each machine's
-# SSH host key, to use them at boot. Maintained by `nix run .#provision`.
-# After changing this list by hand: sops updatekeys secrets/<file>.yaml
-creation_rules:
-  - path_regex: secrets/[^/]+\.yaml$
-    key_groups:
-      - age: []
-EOF
-  fi
-  if ! age_recipient_known "$recipient"; then
-    age_recipient_add "$recipient" "yubikey"
-    for f in secrets/*.yaml; do [ -e "$f" ] && sops updatekeys -y "$f"; done
-    say "Added this YubiKey. Run this again with a second YubiKey plugged in to have a backup."
-  fi
-  if [ -e /etc/NIXOS ] && [ -f /etc/ssh/ssh_host_ed25519_key.pub ]; then
-    authorize_host_key /etc/ssh/ssh_host_ed25519_key.pub "$(hostname -s)"
-  fi
-
-  if [ ! -f secrets/common.yaml ] || gum confirm "Change the login password for new machines?"; then
-    local p1 p2
-    p1=$(gum input --password --header "Login password for $USERNAME on new NixOS machines")
-    p2=$(gum input --password --header "Again")
-    [ "$p1" = "$p2" ] || die "Passwords don't match"
-    local hash tmp
-    hash=$(openssl passwd -6 "$p1")
-    tmp=$(mktemp)
-    printf 'user-password: "%s"\n' "$hash" >"$tmp"
-    sops encrypt --filename-override secrets/common.yaml "$tmp" >"$tmp.enc"
-    mv "$tmp.enc" secrets/common.yaml
-    rm -f "$tmp"
-  fi
-
-  if gum confirm --default=no "Store a Tailscale auth key so new machines join your tailnet by themselves?"; then
-    say "Make one at https://login.tailscale.com/admin/settings/keys (reusable)"
-    local key tmp
-    key=$(gum input --password --header "Tailscale auth key (tskey-auth-...)")
-    tmp=$(mktemp)
-    printf 'tailscale-authkey: "%s"\n' "$key" >"$tmp"
-    sops encrypt --filename-override secrets/tailscale.yaml "$tmp" >"$tmp.enc"
-    mv "$tmp.enc" secrets/tailscale.yaml
-    rm -f "$tmp"
-  fi
-
-  git add .sops.yaml secrets
-  header "✓ Secrets ready" "Edit them any time with: sops secrets/common.yaml"
-}
-
 # ── Menu ─────────────────────────────────────────────────────────────────────────
 header "nix-config: $REPO"
-case $(gum choose "Set up this machine" "Install NixOS on another machine (erases it)" "Set up secrets (YubiKey)" "Quit") in
+case $(gum choose "Set up this machine" "Install NixOS on another machine (erases it)" "Quit") in
 "Set up this machine") setup_this_machine ;;
 "Install NixOS on another machine (erases it)") install_other_machine ;;
-"Set up secrets (YubiKey)") setup_secrets ;;
 *) exit 0 ;;
 esac

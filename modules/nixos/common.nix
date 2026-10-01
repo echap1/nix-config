@@ -60,11 +60,23 @@
   };
   security.sudo.wheelNeedsPassword = false;
 
+  # Machines installed with `nix run .#provision` -> "Install NixOS on another machine"
+  # arrive with your login password (a hash) in /var/lib/nixos-initial-password.
+  # It's set once on first boot and then deleted; `passwd` changes stick afterwards.
+  system.activationScripts.initialPassword = {
+    deps = [ "users" ];
+    text = ''
+      if [ -f /var/lib/nixos-initial-password ]; then
+        echo "${username}:$(cat /var/lib/nixos-initial-password)" | ${pkgs.shadow}/bin/chpasswd -e
+        rm -f /var/lib/nixos-initial-password
+      fi
+    '';
+  };
+
   programs.fish.enable = true;
   environment.systemPackages = [ pkgs.git ];
 
-  # SSH, reachable only over Tailscale (see tailscale.nix). Also gives the machine
-  # the host key sops-nix uses to decrypt secrets.
+  # SSH, reachable only over Tailscale (see tailscale.nix)
   services.openssh = {
     enable = true;
     openFirewall = false;

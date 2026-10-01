@@ -1,57 +1,9 @@
-# Alacritty with the same colors and font as Zed (Monokai Pro Darker, Spectrum filter).
-# Colors taken from home/zed/monokai.json. Shared by Linux and macOS.
+# Alacritty, shared by Linux and macOS. Settings are in alacritty-settings.nix so
+# Alacritty on Windows (home/windows) gets the same ones.
 { ... }:
 {
   programs.alacritty = {
     enable = true;
-    settings = {
-      font = {
-        normal.family = "JetBrainsMono Nerd Font";
-        size = 11;
-      };
-
-      window = {
-        padding = {
-          x = 8;
-          y = 8;
-        };
-        opacity = 1.0;
-      };
-
-      colors = {
-        primary = {
-          background = "#222222";
-          foreground = "#f7f1ff";
-        };
-        cursor = {
-          text = "#222222";
-          cursor = "#f7f1ff";
-        };
-        selection = {
-          text = "CellForeground";
-          background = "#373637"; # Zed: #f7f1ff at 10% over the background
-        };
-        normal = {
-          black = "#363537";
-          red = "#fc618d";
-          green = "#7bd88f";
-          yellow = "#fce566";
-          blue = "#fd9353";
-          magenta = "#948ae3";
-          cyan = "#5ad4e6";
-          white = "#f7f1ff";
-        };
-        bright = {
-          black = "#69676c";
-          red = "#fc618d";
-          green = "#7bd88f";
-          yellow = "#fce566";
-          blue = "#fd9353";
-          magenta = "#948ae3";
-          cyan = "#5ad4e6";
-          white = "#f7f1ff";
-        };
-      };
-    };
+    settings = import ./alacritty-settings.nix;
   };
 }

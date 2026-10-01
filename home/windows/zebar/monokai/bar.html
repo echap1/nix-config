@@ -1,0 +1,186 @@
+<!doctype html>
+<!--
+  Top bar for GlazeWM, laid out like the Noctalia bar on the Hyprland machines:
+    left:   CPU and memory, focused window title, now playing
+    center: workspaces
+    right:  tray, GlazeWM mode / paused, battery, volume, clock
+  Copied to %USERPROFILE%\.glzr\zebar\monokai\ by home/windows; edit it in the repo.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" type="text/css" href="./styles.css" />
+  </head>
+  <body>
+    <div id="root">
+      <div class="bar">
+        <div class="left" id="left"></div>
+        <div class="center" id="center"></div>
+        <div class="right">
+          <div class="item tray" id="tray"></div>
+          <div id="right" style="display: contents"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as zebar from 'https://esm.sh/zebar@3';
+
+      const providers = zebar.createProviderGroup({
+        glazewm: { type: 'glazewm' },
+        cpu: { type: 'cpu' },
+        memory: { type: 'memory' },
+        battery: { type: 'battery' },
+        audio: { type: 'audio' },
+        media: { type: 'media' },
+        systray: { type: 'systray' },
+        date: { type: 'date', formatting: 'EEE MMM d  t' },
+      });
+
+      const $ = id => document.getElementById(id);
+      const esc = s =>
+        String(s ?? '').replace(
+          /[&<>"']/g,
+          c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+        );
+
+      // Only touch the DOM when a section actually changed (keeps hover and clicks steady)
+      const last = {};
+      function set(id, html) {
+        if (last[id] !== html) {
+          last[id] = html;
+          $(id).innerHTML = html;
+        }
+      }
+
+      function batteryIcon(b) {
+        if (b.isCharging) return 'nf-md-power_plug';
+        if (b.chargePercent > 90) return 'nf-fa-battery_4';
+        if (b.chargePercent > 70) return 'nf-fa-battery_3';
+        if (b.chargePercent > 40) return 'nf-fa-battery_2';
+        if (b.chargePercent > 20) return 'nf-fa-battery_1';
+        return 'nf-fa-battery_0';
+      }
+
+      function volumeIcon(d) {
+        if (d.isMuted || d.volume === 0) return 'nf-md-volume_off';
+        if (d.volume > 66) return 'nf-md-volume_high';
+        if (d.volume > 33) return 'nf-md-volume_medium';
+        return 'nf-md-volume_low';
+      }
+
+      function render() {
+        const { glazewm, cpu, memory, battery, audio, media, systray, date } =
+          providers.outputMap;
+
+        // ── Left ──
+        let left = '';
+        if (cpu || memory) {
+          left += `<div class="item">`;
+          if (cpu)
+            left += `<i class="nf nf-oct-cpu"></i><span class="${cpu.usage > 85 ? 'high' : ''}">${Math.round(cpu.usage)}%</span>`;
+          if (memory)
+            left += `<i class="nf nf-md-memory"></i><span>${Math.round(memory.usage)}%</span>`;
+          left += `</div>`;
+        }
+        const focused = glazewm?.focusedContainer;
+        if (focused?.type === 'window' && focused.title)
+          left += `<div class="item title">${esc(focused.title)}</div>`;
+        const song = media?.currentSession;
+        if (song?.title)
+          left += `<button class="item media" data-action="media">
+              <i class="nf ${song.isPlaying ? 'nf-md-pause' : 'nf-md-play'}"></i>
+              <span class="text">${esc(song.title)}${song.artist ? ` <span class="muted">· ${esc(song.artist)}</span>` : ''}</span>
+            </button>`;
+        set('left', left);
+
+        // ── Center: workspaces on this monitor ──
+        let center = '';
+        if (glazewm) {
+          center = `<div class="workspaces">${glazewm.currentWorkspaces
+            .map(
+              ws =>
+                `<button class="ws ${ws.hasFocus ? 'focused' : ''} ${ws.isDisplayed ? 'displayed' : ''}"
+                   data-workspace="${esc(ws.name)}">${esc(ws.displayName ?? ws.name)}</button>`,
+            )
+            .join('')}</div>`;
+        }
+        set('center', center);
+
+        // ── Tray ──
+        const icons = systray?.icons ?? [];
+        $('tray').style.display = icons.length ? '' : 'none';
+        set(
+          'tray',
+          icons
+            .map(
+              icon =>
+                `<img src="${icon.iconUrl}" title="${esc(icon.tooltip)}" data-tray="${esc(icon.id)}" />`,
+            )
+            .join(''),
+        );
+
+        // ── Right ──
+        let right = '';
+        if (glazewm) {
+          if (glazewm.isPaused)
+            right += `<button class="badge paused" data-command="wm-toggle-pause">PAUSED</button>`;
+          for (const mode of glazewm.bindingModes)
+            right += `<button class="badge" data-command="wm-disable-binding-mode --name ${esc(mode.name)}">${esc(mode.displayName ?? mode.name)}</button>`;
+        }
+        if (battery)
+          right += `<div class="item"><i class="nf ${batteryIcon(battery)}"></i>${Math.round(battery.chargePercent)}%</div>`;
+        const speaker = audio?.defaultPlaybackDevice;
+        if (speaker)
+          right += `<button class="item" data-action="mute" title="${esc(speaker.name)}">
+              <i class="nf ${volumeIcon(speaker)}"></i>${Math.round(speaker.volume)}%
+            </button>`;
+        if (date) right += `<div class="item">${esc(date.formatted)}</div>`;
+        set('right', right);
+      }
+
+      providers.onOutput(render);
+      render();
+
+      // ── Clicks ──
+      document.addEventListener('click', e => {
+        const { glazewm, audio, media, systray } = providers.outputMap;
+        const ws = e.target.closest('[data-workspace]');
+        if (ws) return glazewm?.runCommand(`focus --workspace ${ws.dataset.workspace}`);
+        const cmd = e.target.closest('[data-command]');
+        if (cmd) return glazewm?.runCommand(cmd.dataset.command);
+        const tray = e.target.closest('[data-tray]');
+        if (tray) return systray?.onLeftClick(tray.dataset.tray);
+        const action = e.target.closest('[data-action]')?.dataset.action;
+        if (action === 'media') media?.togglePlayPause();
+        if (action === 'mute' && audio?.defaultPlaybackDevice)
+          audio.setMute(!audio.defaultPlaybackDevice.isMuted);
+      });
+
+      document.addEventListener('contextmenu', e => {
+        const tray = e.target.closest('[data-tray]');
+        if (tray) {
+          e.preventDefault();
+          providers.outputMap.systray?.onRightClick(tray.dataset.tray);
+        }
+      });
+
+      // Scroll on the volume to change it, on the workspaces to switch (like Noctalia)
+      document.addEventListener(
+        'wheel',
+        e => {
+          const { glazewm, audio } = providers.outputMap;
+          const up = e.deltaY < 0;
+          if (e.target.closest('[data-action="mute"]') && audio?.defaultPlaybackDevice) {
+            const v = audio.defaultPlaybackDevice.volume + (up ? 5 : -5);
+            audio.setVolume(Math.max(0, Math.min(100, v)));
+          } else if (e.target.closest('.workspaces')) {
+            glazewm?.runCommand(up ? 'focus --prev-active-workspace' : 'focus --next-active-workspace');
+          }
+        },
+        { passive: true },
+      );
+    </script>
+  </body>
+</html>

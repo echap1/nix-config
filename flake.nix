@@ -17,10 +17,6 @@
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    sops-nix = {
-      url = "github:Mic92/sops-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -84,7 +80,7 @@
         };
       });
 
-      # Tools for working on this repo (sops, age, YubiKey plugin, nixos-anywhere): nix develop
+      # Tools for working on this repo (nixos-anywhere, gum, ...): nix develop
       devShells = forAllSystems (system: {
         default = nixpkgs.legacyPackages.${system}.mkShell {
           packages = inputs.self.packages.${system}.provision.runtimeInputs;

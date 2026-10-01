@@ -7,11 +7,6 @@
   git,
   openssh,
   openssl,
-  sops,
-  age,
-  age-plugin-yubikey,
-  ssh-to-age,
-  yq-go,
   nixos-anywhere,
   coreutils,
   gnused,
@@ -25,11 +20,6 @@ let
     git
     openssh
     openssl
-    sops
-    age
-    age-plugin-yubikey
-    ssh-to-age
-    yq-go
     nixos-anywhere
     coreutils
     gnused

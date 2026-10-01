@@ -1,16 +1,11 @@
 # Tailscale: every machine reachable from anywhere by name (ssh <host>, sftp://<host>).
-# First time on each machine: `tailscale up` and sign in (or set up an auth key in sops).
+# First time on each machine: `sudo tailscale up` and sign in.
 {
-  config,
   lib,
   pkgs,
   username,
   ...
 }:
-let
-  authKeyFile = ../../secrets/tailscale.yaml;
-  hasAuthKey = builtins.pathExists authKeyFile;
-in
 {
   services.tailscale = {
     enable = true;
@@ -21,13 +16,8 @@ in
       "--ssh"
       "--operator=${username}"
     ];
-    # Joins the tailnet on its own when secrets/tailscale.yaml holds an auth key
-    # (the provision script offers to add one). Otherwise run `tailscale up` once.
-    authKeyFile = lib.mkIf hasAuthKey config.sops.secrets.tailscale-authkey.path;
     extraUpFlags = [ "--ssh" ];
   };
-
-  sops.secrets.tailscale-authkey = lib.mkIf hasAuthKey { sopsFile = authKeyFile; };
 
   # Everything arriving over Tailscale is from your own devices
   networking.firewall.trustedInterfaces = [ "tailscale0" ];

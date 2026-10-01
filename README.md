@@ -35,17 +35,84 @@ For a new laptop, desktop or server. Run from a machine that already has this re
 3. Here: `nix run .#provision` → **Install NixOS on another machine**. Pick the disk,
    Desktop or Command line, extras, and whether to encrypt the disk.
 
-nixos-anywhere partitions the disk (disko: Btrfs, optional LUKS), installs the whole
-configuration, and reboots into it. If secrets are set up, your password and Tailscale
-key are already there.
+It also asks for your login password; only its hash is copied onto the machine (never
+into the repo), and it's set on first boot. nixos-anywhere partitions the disk (disko:
+Btrfs, optional LUKS), installs the whole configuration, and reboots into it.
 
-### WSL or any other Linux
+### Any other Linux (or WSL without the Windows apps)
 
 1. Install Nix: `curl -fsSL https://install.determinate.systems/nix | sh -s -- install`
-   (WSL: turn on systemd first by adding `[boot]` / `systemd=true` to `/etc/wsl.conf`,
-   then `wsl --shutdown` from Windows).
 2. Clone as above, then `nix run .#provision` → **Set up this machine** → usually
    **Command line only**. It also offers to make fish your login shell.
+
+### WSL on a Windows machine (with Zed, Alacritty, GlazeWM and Zebar)
+
+The command line (fish, Neovim, git, ...) lives in WSL and is managed by Home Manager
+like any other Linux. The desktop apps are Windows apps: they're installed with winget,
+and the `windows` host feature (`home/windows/`) writes their configs, built from the
+same settings as the other machines, into your Windows profile on every switch.
+
+**In Windows** (PowerShell):
+
+```powershell
+winget install ZedIndustries.Zed Alacritty.Alacritty glzr-io.glazewm glzr-io.zebar Microsoft.PowerToys Brave.Brave
+winget install DEVCOM.JetBrainsMonoNerdFont
+```
+
+Windows 11 is needed for GlazeWM's colored borders and rounded corners.
+
+**In WSL:**
+
+1. Turn on systemd: add `[boot]` / `systemd=true` to `/etc/wsl.conf`, then run
+   `wsl --shutdown` from Windows and reopen the WSL terminal.
+2. Install Nix: `curl -fsSL https://install.determinate.systems/nix | sh -s -- install`
+3. Clone the repo into your Linux home (`~/nix-config`, not under `/mnt/c`), then
+   `nix run .#provision` → **Set up this machine** → **Command line only** → say yes to
+   *Also set up Zed, Alacritty, GlazeWM and Zebar on the Windows side?* (It adds
+   `features = [ "windows" ];` to `hosts/<name>/host.nix`.)
+
+Every `home-manager switch --flake ~/nix-config#<name>` then copies:
+
+| App | Goes to | Built from |
+|---|---|---|
+| Zed | `%APPDATA%\Zed\` settings, keymap, Monokai theme | `home/zed/settings.nix` |
+| Alacritty | `%APPDATA%\alacritty\alacritty.toml` (opens WSL) | `home/alacritty-settings.nix` |
+| GlazeWM | `%USERPROFILE%\.glzr\glazewm\config.yaml` | `home/windows/glazewm.yaml` |
+| Zebar | `%USERPROFILE%\.glzr\zebar\` (the `monokai` bar) | `home/windows/zebar/` |
+
+The first time a file is replaced, the old one is kept next to it as `*.before-nix`.
+Zed's settings.json stays writable like on the other machines: changes from Zed's UI
+are kept and these settings are merged on top.
+
+**Then, once:**
+
+- Start GlazeWM (it starts Zebar) and have it run at sign-in (its tray icon menu, or a
+  shortcut in `shell:startup`). After a later switch, `Alt+Shift+R` reloads GlazeWM; for
+  bar changes, quit Zebar from its tray icon and start it again.
+- **App launcher:** open PowerToys, turn on *PowerToys Run*, which opens with `Alt+Space`,
+  the same key as the Noctalia launcher. (Or use *Command Palette* and set its shortcut
+  to `Alt+Space`.) GlazeWM leaves `Alt+Space` free for it.
+- **Zed:** open Linux projects with *File → Open Remote → WSL* (or `zed .` inside WSL), so
+  language servers and `nixd` run in WSL next to your code.
+
+GlazeWM keys are the Hyprland ones with `Alt` in place of `Super` (Windows keeps most
+`Win` combinations for itself), the same as AeroSpace on the Mac:
+
+| Keys | Does |
+|---|---|
+| `Alt h/j/k/l` / `Alt+Shift h/j/k/l` | focus / move window |
+| `Alt 1-0` / `Alt+Shift 1-0` / `Alt+Ctrl 1-0` | workspace / move window and follow / send window |
+| `Alt+Ctrl h/l` (add `Shift` to take the window) | previous / next workspace |
+| `Alt S` / `Alt+Shift S` | scratch workspace / send window there |
+| `Alt Enter` / `Alt W` / `Alt E` | Alacritty / Brave / Explorer |
+| `Alt Q` / `Alt F` / `Alt D` | close / fullscreen / maximize |
+| `Alt+Shift Space` / `Alt /` / `Alt =` `Alt -` | float / split direction / resize |
+| `Alt+Shift Tab` | move workspace to next monitor |
+| `Alt+Shift R` / `Alt+Shift P` / `Alt+Shift E` | reload / pause (games, RDP) / quit GlazeWM |
+| `Alt Space` | app launcher (PowerToys) |
+
+Windows' own keys cover the rest of Noctalia: `Win+V` clipboard, `Win+.` emoji,
+`Win+Shift+S` screenshot, `Win+L` lock.
 
 ### Just the editor
 
@@ -60,8 +127,7 @@ without installing anything (needs the repo to be public, or `gh auth login` fir
   logging out only needs your system password or Touch ID, not the master password.
 - **Brave:** Settings → Sync → *I have a sync code* for bookmarks, history and tabs.
   Keep the sync code in Bitwarden.
-- **Tailscale:** `sudo tailscale up` (Linux) or the menu bar (Mac), unless a Tailscale
-  auth key is stored in secrets.
+- **Tailscale:** `sudo tailscale up` (Linux) or the menu bar (Mac).
 - **GitHub:** `gh auth login`.
 
 Then commit the new `hosts/<name>/` and push.
@@ -74,7 +140,7 @@ Then commit the new `hosts/<name>/` and push.
 | Apply changes (Mac) | `sudo darwin-rebuild switch --flake ~/nix-config` |
 | Apply changes (other) | `home-manager switch --flake ~/nix-config#<name>` |
 | Update everything | `nix flake update`, then apply |
-| Tools for secrets etc. | `nix develop` |
+| Tools for this repo | `nix develop` |
 
 Flakes only see files git knows about: `git add` new files before applying. Old
 generations are cleaned up weekly on NixOS.
@@ -121,16 +187,6 @@ Then, from any of your machines:
 
 NixOS machines only accept SSH over Tailscale; nothing is exposed on other networks.
 
-## Secrets (YubiKey + sops)
-
-`nix run .#provision` → **Set up secrets** creates an age key on your YubiKey (or uses
-the one there), writes `.sops.yaml`, and encrypts your login password (and optionally a
-Tailscale auth key) into `secrets/`. Run it again with a second YubiKey plugged in to
-add a backup key. Details in `secrets/README.md`.
-
-NixOS machines decrypt with their SSH host key; the provision script adds each new
-machine automatically (touch your YubiKey when it blinks).
-
 ## Layout
 
 ```
@@ -138,22 +194,25 @@ flake.nix                 inputs and outputs
 lib/default.nix           turns every hosts/<name>/host.nix into a machine
 hosts/<name>/host.nix     kind (nixos / darwin / home), system, gui, features
 hosts/<name>/default.nix  what's specific to that machine (boot loader, hardware, disk)
-modules/nixos/            shared NixOS: base, desktop (gui), tailscale, cac, secrets
+modules/nixos/            shared NixOS: base, desktop (gui), tailscale, cac
 modules/darwin/           shared macOS: settings, Homebrew apps, cac
 modules/disko/            disk layout for nixos-anywhere installs
 home/core.nix             every machine: Neovim, fish, git, CLI tools
 home/gui.nix              desktops: Zed, Alacritty, Brave, Discord, Obsidian
+home/zed/settings.nix     Zed settings, shared by home/zed and home/windows
+home/alacritty-settings.nix  Alacritty settings, shared the same way
 home/linux/               Linux desktop: Hyprland, Noctalia, cursor, CAC in Brave
 home/darwin/              Mac: AeroSpace, wallpaper
+home/windows/             WSL's Windows side: GlazeWM, Zebar, and copies of the above
 nvim/                     Neovim (nixvim), also runnable on its own
 certs/dod/                DoD PKI certificates for CAC
 keys/                     SSH public keys allowed to log in (e.g. YubiKey)
-secrets/                  encrypted secrets (sops)
 scripts/provision.sh      the setup dialog
 ```
 
 To add a feature, create a module and turn it on from `host.nix` `features`
-(see how `tailscale` and `cac` are wired in `modules/nixos/default.nix`).
+(see how `tailscale` and `cac` are wired in `modules/nixos/default.nix`, and `windows`
+in `lib/default.nix`).
 
 ## Neovim keys
 

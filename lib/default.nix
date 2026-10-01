@@ -7,7 +7,7 @@
 #     kind = "nixos";           # nixos | darwin | home (Home Manager only: WSL, other distros, servers you don't own)
 #     system = "x86_64-linux";  # x86_64-linux | aarch64-linux | aarch64-darwin
 #     gui = true;               # desktop apps (Zed, Brave, ...) or command line only
-#     features = [ "tailscale" "cac" ];
+#     features = [ "tailscale" "cac" ];  # WSL: [ "windows" ] for the Windows-side apps
 #   }
 #
 # The provisioning script (nix run .#provision) writes these for you.
@@ -43,7 +43,8 @@ let
     [ ../home/core.nix ]
     ++ lib.optional host.gui ../home/gui.nix
     ++ lib.optional (host.kind == "nixos" && host.gui) ../home/linux
-    ++ lib.optional (host.kind == "darwin") ../home/darwin;
+    ++ lib.optional (host.kind == "darwin") ../home/darwin
+    ++ lib.optional (builtins.elem "windows" host.features) ../home/windows;
 
   homeManagerFor = host: {
     home-manager = {

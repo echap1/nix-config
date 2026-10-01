@@ -1,0 +1,178 @@
+/* Noctalia's MonokaiPro palette (home/linux/default.nix), so the bar matches Hyprland. */
+@import 'https://www.nerdfonts.com/assets/css/webfont.css';
+
+:root {
+  --surface: #222222;
+  --surface-variant: #363537;
+  --hover: #403e41;
+  --on-surface: #f7f1ff;
+  --on-surface-variant: #8b888f;
+  --outline: #69676c;
+  --primary: #78a9ff;
+  --on-primary: #222222;
+  --secondary: #5ad4e6;
+  --tertiary: #948ae3;
+  --error: #fc618d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'JetBrainsMono Nerd Font', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--on-surface);
+  overflow: hidden;
+  user-select: none;
+  cursor: default;
+}
+
+#root {
+  background: var(--surface);
+}
+
+.bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: 100%;
+  padding: 0 8px;
+}
+
+.left,
+.center,
+.right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.right {
+  justify-content: flex-end;
+}
+
+/* Each item is a rounded "capsule", like Noctalia's widgets */
+.item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 12px;
+  background: var(--surface-variant);
+  white-space: nowrap;
+}
+
+button.item {
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+button.item:hover {
+  background: var(--hover);
+}
+
+i {
+  color: var(--primary);
+  font-style: normal;
+}
+
+.muted {
+  color: var(--on-surface-variant);
+}
+
+.high {
+  color: var(--error);
+}
+
+.title {
+  max-width: 28vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--on-surface-variant);
+}
+
+.media .text {
+  max-width: 18vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Workspaces: small pills, the focused one wide and in the accent color */
+.workspaces {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 12px;
+  background: var(--surface-variant);
+}
+
+.ws {
+  min-width: 18px;
+  height: 16px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--outline);
+  color: var(--surface);
+  font: inherit;
+  font-size: 10px;
+  font-weight: bold;
+  line-height: 16px;
+  cursor: pointer;
+  transition: min-width 120ms ease;
+}
+
+.ws.displayed {
+  background: var(--on-surface-variant);
+}
+
+.ws.focused {
+  min-width: 34px;
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.ws:hover {
+  background: var(--secondary);
+  color: var(--on-primary);
+}
+
+.badge {
+  border: 0;
+  border-radius: 12px;
+  height: 24px;
+  padding: 0 10px;
+  background: var(--tertiary);
+  color: var(--on-primary);
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.badge.paused {
+  background: var(--error);
+}
+
+.tray {
+  gap: 8px;
+}
+
+.tray img {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
